@@ -95,6 +95,8 @@ import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityNodeProvider;
 import android.view.animation.Interpolator;
 import android.widget.Toast;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -182,6 +184,7 @@ import org.telegram.ui.Components.ForegroundColorSpanThemable;
 import org.telegram.ui.Components.FormattedDateSpan;
 import org.telegram.ui.Components.ForwardBackground;
 import org.telegram.ui.Components.InfiniteProgress;
+import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LinkPath;
 import org.telegram.ui.Components.LinkSpanDrawable;
 import org.telegram.ui.Components.LoadingDrawable;
@@ -1179,7 +1182,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     public float getLastTouchY() {
         return lastTouchY;
     }
-
+	
     private boolean drawMediaCheckBox;
     private boolean drawSelectionBackground;
     private CheckBoxBase mediaCheckBox;
@@ -1317,7 +1320,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     private boolean nameStatusPressed;
 
     private RoundVideoPlayingDrawable roundVideoPlayingDrawable;
-
+    private ImageView bookmarkIcon;
     private StaticLayout docTitleLayout;
     private int docTitleWidth;
     private int docTitleOffsetX;
@@ -2088,6 +2091,17 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         };
         roundVideoPlayingDrawable = new RoundVideoPlayingDrawable(this, resourcesProvider);
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+        bookmarkIcon = new ImageView(context);
+        bookmarkIcon.setImageResource(R.drawable.msg_saved_filled_solar); // your bookmark icon
+        bookmarkIcon.setVisibility(GONE);
+        addView(bookmarkIcon, LayoutHelper.createFrame(
+                LayoutHelper.WRAP_CONTENT,
+                LayoutHelper.WRAP_CONTENT,
+                Gravity.END | Gravity.TOP,
+                0, 4, 4, 0
+        ));
+
+
     }
 
     public void drawStatusWithImage(Canvas canvas, ImageReceiver imageReceiver, int radius) {
@@ -13479,7 +13493,43 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
                                  boolean firstInChat,
                                  boolean lastInChatList) {
         ayuDeleted = messageObject.isAyuDeleted();
-        if (attachedToWindow && !frozen) {
+        // --- Bookmark icon visibility and layout ---
+        try {
+            boolean isBookmarked = tw.nekomimi.nekogram.helpers.BookmarkManager.INSTANCE.isBookmarked(
+                    getContext(),
+                    messageObject.getDialogId(),
+                    messageObject.getId()
+            );
+
+            // Log to verify bookmark detection
+
+            // Always ensure icon has some measurable size and margin
+            int size = AndroidUtilities.dp(18);
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) bookmarkIcon.getLayoutParams();
+            if (params == null) {
+                params = LayoutHelper.createFrame(size, size, Gravity.END | Gravity.BOTTOM, 0, 0, 8, 8);
+                bookmarkIcon.setLayoutParams(params);
+            } else {
+                params.width = size;
+                params.height = size;
+                params.gravity = Gravity.END | Gravity.BOTTOM;
+                params.setMargins(0, 0, AndroidUtilities.dp(8), AndroidUtilities.dp(8));
+            }
+
+            bookmarkIcon.setAlpha(1f);
+            bookmarkIcon.setScaleX(1f);
+            bookmarkIcon.setScaleY(1f);
+            bookmarkIcon.setVisibility(isBookmarked ? VISIBLE : GONE);
+
+            // Trigger redraw to reflect visibility change immediately
+            bookmarkIcon.requestLayout();
+            bookmarkIcon.invalidate();
+
+        } catch (Exception e) {
+            android.util.Log.e("ChatMessageCell", "Bookmark icon setup failed", e);
+        }
+
+		if (attachedToWindow && !frozen) {
             setMessageContent(messageObject, groupedMessages, bottomNear, topNear, firstInChat, lastInChatList);
         } else {
             messageObjectToSet = messageObject;
