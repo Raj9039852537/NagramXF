@@ -836,7 +836,7 @@ object NaConfig {
         )
     val ActionBarButtonForward =
         addConfig(
-            "Forward",
+            "NoQuoteForward",
             ConfigItem.configTypeBool,
             true
         )
@@ -1164,7 +1164,7 @@ object NaConfig {
         addConfig(
             "DisableCrashlyticsCollection",
             ConfigItem.configTypeBool,
-            false
+            true
         )
     val showStickersRowToplevel =
         addConfig(
@@ -1434,6 +1434,12 @@ object NaConfig {
     val chatMenuItemGoToMessage =
         addConfig(
             "ChatMenuItemGoToMessage",
+            ConfigItem.configTypeBool,
+            true
+        )
+    val chatMenuItemGoToMarkMessage =
+        addConfig(
+            "ChatMenuItemGoToMarkMessage",
             ConfigItem.configTypeBool,
             true
         )

@@ -14,7 +14,7 @@ import static org.telegram.messenger.LocaleController.formatPluralStringComma;
 import static org.telegram.messenger.LocaleController.formatString;
 import static org.telegram.messenger.LocaleController.getString;
 import static org.telegram.ui.bots.AffiliateProgramFragment.percents;
-
+import tw.nekomimi.nekogram.helpers.BookmarkManager;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -494,6 +494,7 @@ public class ChatActivity extends BaseFragment implements
 
     // chat click menu buttons
     private final static int nkbtn_detail = 2012;
+	private final static int nkbtn_bkmrk = 2021;
     private final static int nkbtn_deldlcache = 2013;
     private final static int nkbtn_view_history = 2014;
     private final static int nkbtn_repeat = 2015;
@@ -1901,6 +1902,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int id_chat_compose_panel = 1000;
     private final static int to_the_beginning = 200;
     private final static int to_the_message = 201;
+	private final static int to_the_bookmarks = 202;
     private final static int shortcuts_administrators = 300;
     private final static int shortcuts_recent_actions = 301;
     private final static int shortcuts_statistics = 302;
@@ -4409,7 +4411,11 @@ public class ChatActivity extends BaseFragment implements
                     scrollToMessageId(1, 0, false, 0, true, 0);
                 } else if (id == to_the_message){
                     setScrollToMessage();
-                } else if (id == boost_group) {
+                } else if (id == to_the_bookmarks){
+                long chatId = chatInfo.id;
+                BookmarkManager.INSTANCE.showBookmarksDialog(getParentActivity(), chatId);
+                //BookmarkManager.INSTANCE.showBookmarksDialog(getContext(),chatId, this);
+				} else if (id == boost_group) {
                     if (ChatObject.hasAdminRights(currentChat)) {
                         BoostsActivity boostsActivity = new BoostsActivity(dialog_id);
                         boostsActivity.setBoostsStatus(boostsStatus);
@@ -5039,7 +5045,8 @@ public class ChatActivity extends BaseFragment implements
             boolean addedSettings = false;
             if (NaConfig.INSTANCE.getChatMenuItemToBeginning().Bool()) headerItem.lazilyAddSubItem(to_the_beginning, R.drawable.ic_upward, getString(R.string.ToTheBeginning));
             if (NaConfig.INSTANCE.getChatMenuItemGoToMessage().Bool()) headerItem.lazilyAddSubItem(to_the_message, R.drawable.msg_go_up, getString(R.string.ToTheMessage));
-            if (NaConfig.INSTANCE.getShowAddToBookmark().Bool()) {
+			if (NaConfig.INSTANCE.getChatMenuItemGoToMarkMessage().Bool()) headerItem.lazilyAddSubItem(to_the_bookmarks, R.drawable.msg_saved_filled_solar, "To Marked Messages");
+			if (NaConfig.INSTANCE.getShowAddToBookmark().Bool()) {
                 bookmarksItem = headerItem.lazilyAddSubItem(nkbtn_bookmarks_manager, R.drawable.msg_fave, getString(R.string.BookmarksManager));
                 headerItem.setSubItemShown(nkbtn_bookmarks_manager, BookmarksHelper.getBookmarkedMessageIds(currentAccount, dialog_id).length > 0);
             }
@@ -48108,6 +48115,15 @@ public class ChatActivity extends BaseFragment implements
                 MessageObject.GroupedMessages messageGroup = getValidGroupedMessage(messageObjects.get(0));
                 presentFragment(new MessageDetailsActivity(messageObjects.get(0), messageGroup));
             }
+		} else if (id == nkbtn_bkmrk) {
+            ArrayList<MessageObject> messageObjects = getSelectedMessages();
+            if (!messageObjects.isEmpty()) {
+                MessageObject.GroupedMessages messageGroup = getValidGroupedMessage(messageObjects.get(0));
+                long chatId = (messageObjects.get(0).messageOwner.peer_id.chat_id != 0)
+                ? messageObjects.get(0).messageOwner.peer_id.chat_id : messageObjects.get(0).messageOwner.peer_id.channel_id;
+                int messageId = messageObjects.get(0).getId();
+                MessageHelper.bookmarkMessage(ApplicationLoader.applicationContext,chatId,messageId);
+            }
         } else if (id == nkbtn_sharemessage) {
             var selected = getSelectedMessages();
             if (selected.isEmpty()) return;
@@ -48318,6 +48334,13 @@ public class ChatActivity extends BaseFragment implements
                 break;
             case nkbtn_detail: {
                 presentFragment(new MessageDetailsActivity(selectedObject, selectedObjectGroup));
+                break;
+            }
+            case nkbtn_bkmrk: {
+                long chatId = (selectedObject.messageOwner.peer_id.chat_id != 0)
+               ? selectedObject.messageOwner.peer_id.chat_id : selectedObject.messageOwner.peer_id.channel_id;
+                int messageId = selectedObject.getId();
+                MessageHelper.bookmarkMessage(ApplicationLoader.applicationContext,chatId,messageId);
                 break;
             }
             case nkbtn_view_history: {
@@ -50778,7 +50801,10 @@ public class ChatActivity extends BaseFragment implements
                         options.add(nkbtn_sharemessage);
                         icons.add(R.drawable.msg_shareout);
                     }
-                    if (AiController.canUseAI() && selectedObject != null) {
+                    if (NekoConfig.Bookmark.Bool()) {
+			            actionModeOtherItem.addSubItem(nkbtn_bkmrk, R.drawable.msg_saved, "Mark Message");
+			        }
+					if (AiController.canUseAI() && selectedObject != null) {
                         items.add(LocaleController.getString(R.string.AIChatGenerateFromMessage));
                         options.add(nkbtn_ai_chat);
                         icons.add(R.drawable.ai_chat);
@@ -51058,6 +51084,11 @@ public class ChatActivity extends BaseFragment implements
             items.add(LocaleController.getString(R.string.MessageDetails));
             options.add(nkbtn_detail);
             icons.add(R.drawable.msg_info);
+        }
+        if (NekoConfig.Bookmark.Bool()) {
+            items.add("Mark Message");
+            options.add(nkbtn_bkmrk);
+            icons.add(R.drawable.msg_saved);
         }
         pluginMessageMenuItemsByOption.clear();
         List<MenuItemRecord> pluginMenuItems = PluginsController.getInstance().getMenuItemsForLocation(

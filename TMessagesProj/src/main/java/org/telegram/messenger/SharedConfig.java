@@ -14,6 +14,7 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.content.pm.PackageInfo;
@@ -22,6 +23,7 @@ import android.media.MediaCodecList;
 import android.os.Build;
 import android.os.Environment;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.webkit.WebView;
@@ -1673,7 +1675,21 @@ public class SharedConfig {
 
     public static File getTelegramPath() {
         File path = null;
-        if (!TextUtils.isEmpty(SharedConfig.storageCacheDir)) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+		            if (!Environment.isExternalStorageManager()) {
+		                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+		                intent.setData(Uri.parse("package:" + ApplicationLoader.applicationContext.getPackageName()));
+		                ApplicationLoader.applicationContext.startActivity(intent);
+		                path = ApplicationLoader.applicationContext.getExternalFilesDir(null);
+		            } else {
+		                // Permission already granted → use /storage/emulated/0
+		                path = Environment.getExternalStorageDirectory();
+		            }
+		        } else {
+		            // Android 10 or below: normal external storage works
+		            path = Environment.getExternalStorageDirectory();
+		        }
+if (!TextUtils.isEmpty(SharedConfig.storageCacheDir)) {
             if (!Environment.getExternalStorageDirectory().getAbsolutePath().startsWith(SharedConfig.storageCacheDir)) {
                 File[] dirs = ApplicationLoader.applicationContext.getExternalFilesDirs(null);
                 for (File dir : dirs) {

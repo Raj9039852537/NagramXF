@@ -32,6 +32,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.util.SparseArray;
@@ -2470,8 +2471,22 @@ public class ImageLoader {
                     } catch (Exception e) {
                         FileLog.e(e);
                     }
-                    newPath = ApplicationLoader.applicationContext.getExternalFilesDir(null);
-                    telegramPath = new File(newPath, "Telegram");
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        if (!Environment.isExternalStorageManager()) {
+                            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                            intent.setData(Uri.parse("package:" + ApplicationLoader.applicationContext.getPackageName()));
+                            ApplicationLoader.applicationContext.startActivity(intent);
+                            path = ApplicationLoader.applicationContext.getExternalFilesDir(null);
+                        } else {
+                            // Permission already granted → use /storage/emulated/0
+                            path = Environment.getExternalStorageDirectory();
+                        }
+                    } else {
+                        // Android 10 or below: normal external storage works
+                        path = Environment.getExternalStorageDirectory();
+                    }
+                    //newPath = ApplicationLoader.applicationContext.getExternalFilesDir(null);
+                    telegramPath = new File(path, "Telegram");
                 } else {
                     boolean isSdCard = !TextUtils.isEmpty(SharedConfig.storageCacheDir) && path.getAbsolutePath().startsWith(SharedConfig.storageCacheDir);
                     if (!isSdCard) {

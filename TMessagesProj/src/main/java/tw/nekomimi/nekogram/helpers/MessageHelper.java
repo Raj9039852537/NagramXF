@@ -309,6 +309,9 @@ public class MessageHelper extends BaseController {
         }
         return messageObject;
     }
+    public static void bookmarkMessage(Context context, long chatId, long messageId) {
+        BookmarkManager.INSTANCE.bookmarkMessage(context, chatId, messageId);
+    }
 
     private MessageObject getTargetMessageObjectFromGroup(MessageObject.GroupedMessages selectedObjectGroup) {
         MessageObject messageObject = null;
