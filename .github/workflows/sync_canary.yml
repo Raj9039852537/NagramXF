@@ -1,0 +1,39 @@
+name: Sync Canary Branch
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - '**.md'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Full Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+      - name: Fetch all branches
+        run: |
+          git fetch origin
+      - name: Checkout canary-patched
+        run: |
+          git checkout canary-patched
+      - name: Rebase onto dev
+        run: |
+          git rebase origin/dev
+      - name: Push updated branch
+        run: |
+          git push origin canary-patched --force-with-lease
