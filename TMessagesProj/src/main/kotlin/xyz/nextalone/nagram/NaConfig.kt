@@ -1164,7 +1164,7 @@ object NaConfig {
         addConfig(
             "DisableCrashlyticsCollection",
             ConfigItem.configTypeBool,
-            false
+            true
         )
     val showStickersRowToplevel =
         addConfig(
